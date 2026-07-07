@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Přehled tarifů — přístup kódem</title>
+<style>
+:root{
+  --plane:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+  --series:#2a78d6; --series-fill:rgba(42,120,214,0.12);
+  --warning:#fab219; --critical:#d03b3b; --warning-inink:#9a6b00; --critical-inink:#b02a2a;
+}
+@media (prefers-color-scheme:dark){:root{
+  --plane:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+  --series:#3987e5; --series-fill:rgba(57,135,229,0.16);
+  --warning:#fab219; --critical:#e05a5a; --warning-inink:#f0c14b; --critical-inink:#f08a8a;
+}}
+*{box-sizing:border-box} html,body{margin:0}
+body{background:var(--plane); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.5; padding:32px 20px 80px}
+.wrap{max-width:900px; margin:0 auto}
+h1{font-size:24px; margin:0 0 4px; letter-spacing:-0.02em}
+.sub{color:var(--ink2); margin:0 0 4px} .tag{font-size:12px; color:var(--muted)}
+svg{display:block; width:100%; height:auto; overflow:visible}
+
+/* zámek */
+.lock{max-width:420px; margin:8vh auto 0; text-align:center}
+.lock .card{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:28px 26px;
+  box-shadow:0 12px 40px rgba(0,0,0,.12)}
+.lock h1{font-size:22px} .lock p{color:var(--ink2); font-size:14px; margin:6px 0 20px}
+.lock input{width:100%; font-size:18px; text-align:center; letter-spacing:.12em; padding:12px 14px;
+  border:1px solid var(--border); border-radius:10px; background:var(--plane); color:var(--ink); font-family:inherit}
+.lock input:focus{outline:2px solid var(--series); border-color:var(--series)}
+.lock button{margin-top:14px; width:100%; appearance:none; border:0; background:var(--series); color:#fff;
+  font-size:15px; font-weight:600; padding:12px; border-radius:10px; cursor:pointer; font-family:inherit}
+.lock button:disabled{opacity:.6; cursor:default}
+.lock .err{color:var(--critical-inink); font-size:13.5px; margin-top:12px; min-height:18px}
+.lock .hint{font-size:12px; color:var(--muted); margin-top:16px}
+
+.chart-card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px}
+.head{display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap}
+.name{font-size:20px; font-weight:650} .num{color:var(--ink2); font-variant-numeric:tabular-nums}
+.tarif{color:var(--muted); font-size:13px}
+.stats{display:flex; gap:18px; margin:12px 0 0; font-size:13px; color:var(--ink2)}
+.stats b{color:var(--ink); font-weight:650; font-variant-numeric:tabular-nums}
+.cause{margin-top:14px; font-size:13.5px; padding:10px 12px; border-radius:10px;
+  background:color-mix(in srgb, var(--critical) 8%, var(--surface)); border:1px solid var(--border)}
+h2{font-size:17px; margin:32px 0 12px}
+table{border-collapse:collapse; width:100%; font-size:13.5px; background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden}
+th,td{padding:9px 12px; text-align:right; white-space:nowrap} th{color:var(--ink2); font-weight:600; font-size:12.5px; border-bottom:1px solid var(--border)}
+td.l,th.l{text-align:left} tbody tr:not(:last-child) td{border-bottom:1px solid var(--grid)} tbody td{font-variant-numeric:tabular-nums}
+.grp td{background:var(--plane); color:var(--muted); text-transform:uppercase; font-size:12px; letter-spacing:.04em; font-weight:600; text-align:left}
+tfoot td{border-top:2px solid var(--axis); font-weight:700; font-variant-numeric:tabular-nums}
+.cc{color:var(--critical-inink); font-weight:700} .cw{color:var(--warning-inink); font-weight:650} .off{color:var(--muted)}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; margin-top:14px}
+.ncard{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 14px 10px}
+.ncard.fl{border-color:color-mix(in srgb, var(--critical) 45%, var(--border))}
+.ncard .nm{font-weight:650} .ncard .nn{color:var(--ink2); font-size:12px; font-variant-numeric:tabular-nums}
+.alerts{display:flex; flex-direction:column; gap:10px}
+.arow{display:flex; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:10px; background:var(--surface)}
+.arow .ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px;flex:0 0 auto}
+.arow.c .ic{background:var(--critical)} .arow.w .ic{background:var(--warning); color:#3a2c00}
+.arow .amt{margin-left:auto; font-weight:650; font-variant-numeric:tabular-nums; white-space:nowrap}
+.unit{font-size:11px; color:var(--muted); text-align:right; margin-top:2px}
+footer{color:var(--muted); font-size:12px; margin-top:40px; text-align:center}
+.topbar{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px}
+.lockbtn{appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--ink2);
+  font-size:12.5px; padding:6px 12px; border-radius:9px; cursor:pointer; font-family:inherit}
+.badge{font-size:10px; margin-left:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- ZÁMEK -->
+  <div class="lock" id="lock">
+    <div class="card">
+      <h1>🔒 Přehled tarifů</h1>
+      <p>Zadejte své heslo.</p>
+      <form id="lock-form" autocomplete="off">
+        <input id="code" type="password" autocomplete="off" placeholder="heslo" aria-label="Heslo">
+        <button id="unlock-btn" type="submit">Zobrazit</button>
+      </form>
+      <div class="err" id="err"></div>
+      <div class="hint">Heslo jste dostali od správce.<br>Uvidíte jen údaje ke svému číslu.</div>
+    </div>
+  </div>
+
+  <!-- VÝSTUP -->
+  <div id="view" hidden></div>
+  <footer id="foot" hidden></footer>
+</div>
+
+<script>
+const ENC = {"iterations":200000,"slices":[{"salt":"Zao4LCe7MZPD3LwIBwEQmg==","iv":"Au+w4sHG0YlUvhoy","ct":"ZKtWSNgkrkALxxc5Tcekwl4sCI93xg2rWvP3zuGDhiHjcQrlqk7nhSdJC9FI5k+N81xY02ILGvBI21mQ17RBYU9lEGDFE5dW9QqWoqn1MHfUJP5S6hwmZFshsFY2zcNVhoF0R225wGDthTKVXyzUTfWOVEu+/45pxVARHAFBc4evOvng5SObYPNzyT6e2w8BzJIgHWbGs6mKVIhHme7Rtv2zoP9AQvSPXug3a0IWBA8ZZ9X7rtG9aXYRa3Mrh2jJr7vTnOs2o4KMmUVexucyKZWJMJKh0TerBnE6tVcn1lYE1NyvaATSxMiQhlq6cvPJgYDb/wRkE8nYcW1o3ZnKcX4ZuP3MbHrEpDQyF4YmZvYKZJCx2Y2WhEpq9v0b9HGSV81DYJrIZEC2Z+RVDOEdo463RiwyklEChHD014grUEtJasOs38KANdMsqJOsqcsgLDvT3RmY4XTkwN4I/jMl+NnBIMsJ6qtlL+lhAoJJADmylPWKL1dPTTAd6wsOSgJLsXqm2+8smrxbjZQZgSrOKtJsQuYDj7dKoGIi9AXTzM6c/jlGmBj8AwmHTVjmpHGANHWjODqSz87oRDHKfToFh25upBDXX/Bvz6XlhKg1srGnPC0VfqWFCsBctijv7Nm1j6zOHT666rh0iqWx2k4FegELbDtFzNmvuXapBlg5xyGOuBO6RaLKaZi3HgrT2sXIxYpmpDrCKU+ZX+2DlptlB+3GonnjjoVsZblBo0c/PYfnIMU7rsc8nwfpPBDTJUYZSNTE/xwB5Tj5nc6XcjfUi1YZ7rLg+rMNEe3lrB81QlSPzDfmv8bhVekcIzwq/WIZ7+Wm6ietPYzjbeu9Y6CX262IJHt+gA/ULyNsUT53x0aftbQmN2dKz9em6i57N3Do3iG0jxmAFmYVW8rSiRfNepjNcO4l"},{"salt":"sY2SDPB9HUpsNFOa9PlXRA==","iv":"2FWZXqk2/e+dbkGF","ct":"hMonlzwGNpzv7oBxDNETHncED3wcU0dHpdo7Q3OhP63nsVdSp8rNdsBRL6DDF9P3da9XkRy4AQfknVcar+sqOjg1RpkvQl/ecWFUM+PV1jrhlUnJ3RLMJV3B6b/in3Hm4ezT5YP8hutoSyP9+6X3DBivqSZFegOYTbh/r66ynlSfsmJdpo1atd6mA3hSUyCHc2vmZvrZKc/DGVQmPC7YpMP+YLhu+nth/ubm+8icoIlB6mPi7ftb6whRUoiEur/+TXZyNf2g9Ekgcn4ob0U9Rjx9Tr++h2wtauzfCjxHXZWExdvTphDZPF8/8v3YnK+C9zS6Z/+RBKzvFfcQdjG4C5a4aFsr6Uiel4a0j05CK53RlIFZhFHdpa5SFOwolbnG2eSbBI9N+L7KOFLmEPONCv4rU4AZrNUPpRfMpn7oRZdOrr+ql+XcCrNXgikASAyzqVQNbwn/MSS4pjXiPmeZHWT/n3YVI0EBRHxFvsTqoFlF0+xv3OIoByYAnPlPxtKDCMSdHs1eMiQZgw6AabHoq+gSQYlugNsS8MAm2I7WRV1kbh82kS+TQm7+SSiiKFEHe0JZyN5r1pGD9y+KSUePE7ab9+IcqlllEkYFIOJW2ZqYfa9/x+f8AVCuQ63wdLJJ7GUo+qcLW3vtrYvapBdz8Hr/TZ5LXrW/EVisnjrpbGJ9RSDmwPABjVLSxqw6NMdQZplpVsdnzRxT7hbtplBpV4O8HdwYWUtyESe2r048IxkmZVxA7BChwYSUDWkuD79ymBCsu+b3853P0XLePJ1BNvsSDeaUQLPa+MseepkF75sFybroDJnDDe7cCLCIgj6v8i7yJL7MSkrvD6YQj/f76JOHPN7SnlmVeqWDLRE3bFHaCaz483vM5DYIurkKRwsjNTtmZkRh84RlL+1gA4Pc+S+Eisu4"},{"salt":"XGmPjx+NSMm4FSI4bRiCVg==","iv":"XDToaRFAsvJmaowV","ct":"i4940HXqcjoP4o4jjMliqsSYZPIF1q/RX2qqsZQiBrfMj18qVZPMt8aQpMJcDuaeIVw5yrWhBX9IkrNYdmb7L+LxDx2sDydRPU8zJE4nviD3jnRSv4vsWxL0YrnfvvyZLsZhCXcjXvzD/ope1UJH5TU+31s3WuzJwG+NEHgj3dEddo/zQHlanod1xxfyjVyJl8lo0bo+8ALR9xE5Pm4qwuRAwXYHAdBxPpFWwcoicuZzfdco8dMIR0FoYlfKB3KJNzVEnmd0Vlobr3iL4yi+CPUVq87bsQFQaP476cGtMjjbcI8iXEXmiik6smGJTZ09Qln+Bjiehk/zHvEIK1hfF1DD4olxrlKYzJwIEBqTQSjHI1/wOQAcbzvuUMypfoHiqIEqHYrM5v3NrxP37Y8wqk9gIrwSm+E7ZHmPIOIGO+wt00Ot2isglqLl/mgsmbEHjknUqLbbSo1RiYr1c6GLeAzGDBCgHniV3LwwoHYxqnADr+8MwVl2EW3+KcLh57mM0mtVNCgYgyDumt59S6lpAfuf2aAMwNXBwjm7FyPQmJ35Q6fTOT6zUOIXQVDXigDMf+gDW+5HLEODzOZYyYr5MbV/N/ks/bhXxyFRXlFjyxw6gwZaFFkd7dBenH9b+jrPm4lx/oEvA5wzZIrakZADRToOdK0wjlsiyoXRdTvTkvo3nlw7Nhq2RrJrMDDLVZ92K1czdSEA2dfaIxmFCXWMeOdyp1BdtBLs5PjWBeagYAoxiJ0ICh8b3594x/FvPPkwtKj46OE19VEO8f3qeKhvSG2T/6FXJXT0dMTnGle2b97048/8SaaVdWYcRTIVa6SRvIup+yDqkkxr+EgjOP/I7UG+saEOFYIeumo39Eo1nl+q6vImmKWuGi+QT22AyQ=="},{"salt":"A/E/w54bbprLAts1zQL9+Q==","iv":"waWr3vLQ0cSzvRZO","ct":"7auqhfpGC7jiBCv+fpywjTByk7yKjtL7c6DY/9RVrYjMHsMXVl7IrKmLAVRwyEnifQq88h24blK5lCCyn/jS+VuEAXJEyiDdFOnCwhI25I5iKZZYYzTC7RyfJdpOxWLSwEsYa8xaLxEENczQJURqC2Tdg1n0pZxAelq3G9hEprjvClp9C+JEE6DXwgvtme07vH2J7tuXHHOu8quyReV/0xcGYI3ioBLJl7Z+2ptCVgVzUlVmjpMa9HidkmGfD80DVo2UYOygKlj+371qtUiNXGsWPVcePZMzCZxIlWm7czq3Cw4Tf5rS4n+EaTsSSSzw84gAKgsKWPiTX/4sNejx1yBfZloIexe/dQcUYYFXr0rRS1l9ENcVnGh9NG+B3s+up8+FXhtEYpecyQLcHzVDbbEvgeCmmwc1tc5E0AeT0BQ/0coupzAqOOZriEniy6saWpYE6ESy92uC/+qsq9b5ra0AVXCEJ0/uhQGve6p4petKRInrrNP6iYzDUdmbAdJ5yGSd3A1H3CfuQCdgp9ScSOhXAGpqRMtAvT5FdtbsY5XJkRCctqdrhRG+BHc8ypS48F/jlBSY3GQ9JEQaVk1Us2w5TFkpLqClsLS8KA25gzPugxIkJ1JL9sT33h97gNOKu0rtZL5tkOXRy3ZteJpBhT39ODen/ef1TAgFW+CharG5YvKohkEmIfDqS27Fy7HdzEeCwBBv3CskcmoqsNBXeMlgpf1EfU6mYV8qpWhlOrYbzZGV2h6lYlgO0wDiY7f7Jk4I74huJpp/PbFqfueusAj707Y6wQ1GRG3eLMruigLOvU7c5KapKd+gnVp53RpnV49Qc7XlvgSVTXcjLxWlf36HShfQpoSF3b0/FH1DL0l/KqJi2Uu9MWsPqrk6ieIslDA1sJrtismp6/mVSA=="},{"salt":"qNw/iEak2nQHMCrSeo3e0g==","iv":"YfDI3TZmhfSpwar1","ct":"8PaEOFW0rBkTT6aHhYpYtm0TZs+5SLhkpns1Xp/LGqSXsfA5TjQUKWTCQgbhNb7upBso/BLQf+1Y+xqrBRRqhBT4uEUMjUXm7JomdnjQbLUgBYgnaf+hKol1eA1trUFd8Y1+PpXwoEB/JvM9PVaydHLTq7WT956M0DxcpZmbDscwR0TAbMtA+31E3U5kaRxVEZwlalykK0CQMkbMtOwTVNirrD+app3kI3Pm2Ly6wXXMB1ZpcjYsdGnZc4grZO4cQ5cOKQ3/01VwJ0OTOnYwZ02o2sKSZNBtlpX1acngocsSMz4VB7oCW82Dn1W7YIrtesnSiFH1bX8zU/5+EBrRS6ClyGQvG52o5h9SPpbS9S8cTE/cVZPOVMg7QyyKldPqU1VTaCyxh1x6ZLdmbmv66xd0fh004xUz0c+C0HOEeE71Rqs8PcMpcValtRb+Kmy95O5JAT53tb9kc6EXhPrtviUjjxRIE4Jt75OefkwO+G3fRPFZ5SlAuCryWGUxfFT6CXMhLrSoVjAhmDau3aHx1DuJycYYbUCzE/VZ+42f8ShChYGIT3rCaqa/DVRsyeK3mqCI/RXqgqwUp+mswlN2B2UfmOGMu7DDhCuSZeBI8hhabECE14F7icn1fO+Ax6XMlEGhom9JTbmlcgXCa+pLOibw90XCXFLNXDukD9jpeqNJfVeTHVbMp4wBRt/Cq0ftpvgKCAl9qD9IKKPrAnu5EBZxi+m9VhHJfLTKAIp8g7Mz7XTzzI0TfIQoVpcifPbw0fUzCbMQGfHXk7cndhmmV9BpxYb+bhSQJnHTnU1/G5UC3oSNatpRcLNgj9uWgHzcbqiOf0ym91NHaw/peDD4eit47rB3e5/tLsznwhis0PHTb9QoGQHy0LZ9X1yr9A=="},{"salt":"r0oBOkP1fSRUAb+NrxdgZQ==","iv":"qvkmKcLzQtleTFWZ","ct":"6IpT+KZXehzErvtyOKXxAnYz21PJTY8aCOTR3JHs0Guqb1Z3XFzt/hE1kLprIFtdAP4wSZ9xAPukZKYTl66bY4zEBO7d0ajUbhIkyxqSfMjW/O5B0Kxl4dstNCYUjfbj45UZXWW+KWb+3rQv3Zd423V0OHTq/9pXdvq0+dtMJSB41fRmEyJZ3b2GJbl5wbnkZAcM+uFpZUERX3rEqknKJtAXwoqTyJigr/cWrOKuKqBagYryNoagA6Pa4kYJgOCPdfZdiDHJd9UxOq0Lt0KkJXj55voNB9RbfwnH+6CrGCNFta0PZr2wxN7o8Y6lnkK0iIxOFEKAtCWxUxIm6XEYimvBo+t5o4uoMqN83/eSbnZ1mWVr2RJorwr9FljQS3blt1ElDrGzvwQOQsAdM+JJ6jdydUrkBhD7MLl3VqPU68EyZ2/cjrNWrwY/HGKt/X2KXCWQSHMUXOqc0ksTPN9Kf47zauoJSPNcaiXYNHCoJ4X3+klvsNkzdU2FFuQkzkLwevoUs+JysODzDbD5hByji4ADE8DlXOp8k/18xQV3V/+/hF58mswSDlEbn4YoZRj9LG1pkTy/ejFcQ9bLRg2bmP15PkQ0xqJUWzumN3Lx5EdPuuaz5azHJz5n/Cpq/XaGSusqjrXIs8z3htg74K2Y/g8Hr5JHFRMwUExmXsESjWhU9SrT2Y6/dFvBmlNxFgXzz19mPaaUYueoIcWL0oPtl6lcH8FS8fPxkTQrwdsXgr2uVxcM07Awhl+lGQeg6OuCAi5ldPfY3XNjWdWVLVVEWq5NdVQhNNccEC/7FSm77N9EgNl0ze13Ep0bOHoidIEdLdbDHhcEvMHdjddn1ely5CGIJzorqbQYRFdezYtnI2wdEMV6R/qn6r8fgS7QGu4IyaaeKNp33G1RHVZ4YkcLGJJlg3kGCIHMZoQVivTwExNqQmGK5a7WTdTp+7SWm3s3902iyEnZ/tpx6/0V815GiCHD/HhFLf8HWdjBaXLla897nU3suZf3luE2ciWldkTv3ZRyQkYFe7w82Q1ukfWk6m7sS8XYyIy0krnPb82f8cdiwynuznSpbRUqbytYrU1mRbQK7sKS4SqhM7BG4rdXsjhPfjhnCZuwNnmqIxJofVMuhCcLb5KtquLq5EDYhJcBvKP0FDrydEb8NX0oAUs0SC4IDeE5Nox+"},{"salt":"v4/4FW/TK7JkR2BnXxCe/g==","iv":"GngT8SPrIEkGjdbF","ct":"3zrqfyY9gqRyw6ZlnYXv38Cu0oufK7sMZkRO45TpBE2qT6dygeFDoOtKPlEpyQi6UlQD551bAMkEwb+nW+GVUT3eQApkGbiJIKi+dAbf41mp57SVae/nk7yq9OcmEsrqo7gG4CdwwM/cl8G1Mys4G2LGXMqRjWgb/Q/eiCsFOXm19jactDFJlR2V1hUrjw3BDRROEHOv3jabxURnGU+Hwx0rllVZU++WJtbx9UrwI/rfaxhdAo/ubUc5dLN6IJy4fZZiRr9s8skHaYIV3cO1sLJ5jQjDfzPj+4KF/5d22wLFRxcsgLktgZznHlNYnpE2I2euJNCi1uh/3nS54h8ggsGJI8gCKbmNE5KpRzCgjytxg5mY2gloB9Yo+X1uCWWuamF6THXE5Z3zw3yV4vQROKkAwUk7as8vgNvxUr6RfKjGizzlMfPrlWz+8cu/FqHT9HuauHZnb/WWKsSAc5a6DbKkFwQ2fcYuXiCWJrat5X2WT1vHBLrFwIBs2SoBi0zO9JK4SkUDmWoonf2LzUAwa7Gu/X5hqnoZ+6jxbUClSQ40HToc/IXms8L4BUD/HZN2ZDAFTKy0tMo7L+zT4l+J5u6bpsPUxMwRLz0DfraH+C2mHK72IPkYp4K0h5yVhXy55WHVDQNMIJOsLiIHgKRVgH/fkfP4dpytmKbNnF5CdgHE0xooEKnzfa36KHQZ6er0dXwf0VKQO7dRuqwp+YxkD6NDZXxzCXn2TZwX7lVK0Vn3JJhrfeUbiKOtKhC7S9kR6g8R7j6R77ZVgL+SSmi0m0+PUzVosoW+XqtlrfD1Jtyx5X+Fj9I8EBe6Pf+2DKVGYCKXcMxqcGaQa3jOpL1RnOE7KoQu/2wbYBQKEQphCCqzsgyAPU3AYCHSg5Nj7DcldZtDQiH1r1FHf0KVcNO11JwQJAcT+x0qdJ+P47efvqa7Xpf2ryBo71nrxxdH64IfF5RWKISe8qb6zb/uNmhrIwdkTK0ZnXX34hJyuMDqEIADENAG/V25WlQ3CoRSWy5GQugEankpJ7DYwhxwfpBrc+sQAFj6NW+1ut2gM8pXNv7lG/Krexa/ENVtM88Te6lKIIAIHSTDD59vSume2sJrS0nCYlbSPrwY89KQEt42rJF/cFjI4PXgyeIDZpVkfezZ7ag1GBNTbBbZ3uH8O6MCJmo35orFr/GNeMCXTjZCuYku"},{"salt":"l5lVXNds+7HyVAvGQfNfYQ==","iv":"C0hWv2UIiMUxgAlH","ct":"lMvXUioqWPh+oPC4ujoS4qfXvdPD3PG19d84oHH8ZOSwRWaxt3Tapp91uC34H7t4wmeB1L4qoC/pxSS8aLo00OGBY3KzbaVDUWgRHqo9MsJ/L8Jb9wdBLYIfoyFeurZa/zkxoXJub2pxAkI5X2tLtVtISa+XRL0L/fk94jPtNPwKxt78LlKI2y4IEqdGZV0hCjxpIvKyVMrHq16XDhJry/YgYMnjk2cc5Tg2jMEFPNrGnAm1mIQpg1CszvSBIaOHynQDkjWywc3rCT/lstWu9AyXxKaAXJ/0LcDJxkKndgB0VlRx0BZqyrUdpCYi7WhIu3rEDvFzxY2sErP2rGpyv4wLz6XKqhD9/yQr0D9XQkUaGP/w9Vxiyp/2r95rfOl37lxGd8L4/z+Eoh6CUwAskV+nlY2Zf2vdEOFSXm60fjuCs2coVwJ6uZfEElIVsOSaFM6pBnlZG8uSVBXBmWeEEgs6hr4Heol/NX45jarjQSP/I9ckZObNhctrr/LBhhWH4x1C7vZ9f4Ww2coUwqwSc1fbqm25sY0fZ75oURhYo6D2tapvWKiPKxARvJ0Kj0fOKOeZv2nfZ19NO7FyLse6TW+Upuq6cnbkAKeo7LKK+MZojmBsqH5MFXqviBoCSAFjT1Yw9Zd/fQW88FpQFM/aGs8q/WrAO7R7aPPxh6mzPRIz7z1kICo1NRxj92a16DirAZ3Zu7EV5fX5nC4M0Y4ql1yZ5yWcLTzNgVl1NnaNbN2is8YMv3x9zaiDv/cZHIJu5djssLO5sB6fn+DM8YIOLVXEQC4tEUcKh8AUcNy4MgiSeeziSCd6QIcpapU/7jEolhPYvf3JMDJU/TGzxfLWyMu5VGOQ0X17bt3aFrdE3D00w3J6Qci5oYT3dugFyzSDSw3No5jjY0QL"},{"salt":"Nz/EeC++cSqE8lZWqEUlCQ==","iv":"LTy5Ob8/tjeWQGMa","ct":"ey2jcYznpsM994WRjAG4xuzEdYWGzOdixqKwxGY/FsMQrsbSsHtEmkq4zrUXCvRfhSee3D+v1R04JVe2UcezoDk/kxuClxTarD5ONyrvRBLFPFhJTjSuYr7LMfJLvxLzjD9gV4Mm1G1e9JrR6ROQPOSfpLZw9Tj7STeOYPgwd2Wq2gDRqjaD8CQsPR6mpI0+cSHD5fXtDh/3u1EGitK2JauVW1VehrdI3oMioDM/JXylMXIElHipdJ/GvIarRsLgNsvZ1d0bKL4F377cT9EPnirk+c9pVBaF0+XVJBogZRe9wBwSJ9IEKaLUhaXau39L7fE36oQWGKCXPbQ0Dt9gvWklGpuGoCb2zqQiMg+iANlGzsJu5KlezvNHyPukE0BLkZ3akS+IWtvEbGe9wjYHIM4liZDTlEpqQK+KH/0IFC3DKIPKjlXjo/QX4CMxXqpIdLdRZCetPwGrCTzGS9x66giLiHBdw/PYNmXGzFRBlZ6SYz0yKJU0IL5sosFPgpyHHsEnx0hi+hStRWciDIMAR/Llorxi2VL+R//PqrLSy0lk0Ax6fBp1dU+HmOXeNnHLX6ng218eZFnRoMp9xXmf7wenl28gFSjfekdUGdf/zfs+16Kr4hbDYMjJTmZ1ggPJ3gN3qcGlG42+1wUPVlu46M935SCy8Ftu4kxc4jUvMmHRJDNe0mOr2pZoORNtI5p2tKDlVb9I/taPUAY6/xhvOZUeI2iEuFJLfjsmMb/WQJEBc9X871G8p6uJRi6tJljmw0BCoo03lGvne5ZGrOCbtnhx0lquiUFu/AeTBUeBq7TMBNVS1lDYC8PwY9nNgD53RXCFrat7eZfsxYBNaGz9Ktv5CzAh6dQ9fGVtjAwE0UUOWkwpc/GrjvpNE60JKVyoyuNxjTJftF/DHXcu5vev64TufwkZ"},{"salt":"OAPz2jYFWnXGByZi1K6vIw==","iv":"zQwXVg6MRx/C1UXc","ct":"rNmMLsgGsIrTQRsguS+h8dxRmFLzVB8ErlXQTF5yCL1cLtZHKjTbpjkRxFrY0xoWkYrviv8j3VFbKUIggxoFk9F5PRtSjeyVAy17qQqfmkMnPEpdiX4jLSDiPx4e+eiKYYbBQuzAxfd9+IbWDON1Kelo885wukmV0mKyEjRV4oJf50JWShUoR0xM3FucjzXMnhpPRRTd62UFKdC2RQvwkYpFe3HgpdNmcIYaQMb3rgYrWN7R4jRbBKzDEHB4elhIYGgcSFdJ2Yda9dG2G9Qwu5097KLwHlNaUJzaIKWMSRnDYxR+NfqKHwsd7KMHHKR+e+TtRDcgNWx+q/ezgJbUwVK3JMNQz9vJ3TTklR9vYyNz5ZW0TQprFrDZvu+oPzZOqR9mZdVaX6p/3OqEdtKCbXu4dxfK8t+gVGZEcQM8sXRpX0Bo4WWGWRSSdH7OWOnbolqU+Mr3Qm3X+xUU8yd1QtDU6j0IH5KJPolnX6uEr+t8HFlYnPp39Rl70EghhhYPYaKBPy/TogshuWkTaAQPPjjRosXC8ObNaic+4TiGxTCDgpLJgjVWRVPHEjY1NNSkkZsxIP6VCkRD6xUR5eLCG5dze0MbpwaFG2VQ9JhZuscEC5+Efbwi1/J+s8Vw2UWexgMdnS5Y4os1qmt9fe1G3TOWcVIYueYvnMTNGC5oEomNSvofv0GOaQLwJ/drOYvM/5oF61nIFra+lW/XGWzGZhAZhNNSroeA8lrNRBFQErHvH1mTZkIo+mKYHUXapKQNOd6iz/lYieAYZQQ42imOwdddFMn2AUTJHZgoxJ+mRKcjTQz3mPNY2VENq2EKPqS+eooJMU/Lt5aebEkmLq+D/KioNP8Q4ISMI5s8+YHaOlKGeKrgu1VQUkywrtE6VeVfBmglLhJqFr/Yc9XzhZpwVTE="},{"salt":"jOFukk/sLQDmt5ToivBXxA==","iv":"6bmt1AgoPcp41Y8i","ct":"aYgdyqdztrUlVzKZ86vXKITjsKA9bcGH9yR5nBNr8PKtQCArPGE6x2iFOf8R6RjgoRaqn7pDoEj+YTpLXuu8dwi9VFaWfKAqzNllun294VK/N+ybnEiUtY0azcn0Qmvr0tsB3o20XMvkXep/h4sU8ebqVNooawESaqLQfViYg8Ya8AAiwd7s2Z8Iop50cYDVwZmGrym9nUMeXzfeUnHzz3Au4Jv5l0+nZ8caH3h1p2Ge7RIlryLiFRVuBRh5RurjegCKojE1UZk5ZhYdIVL2PdJrka0xNTCYj+nPDqsMFvN+nqKcW9mvMacOlVBdhuOEnn9de43LxmnkLDk9nO9K37PzISakdFULuAeYYDrNXKLrOfqNicV/LMI4CwZQAIFwwzmbloBjB44GOrPyWc1LrjeSqYGEmpi65IP5wE6AAPcFHe9m8Cy0bld88HUIUif1ydyv7ZCPIvOJg8JvfM/5aGyVV76KxujWFhkN7evyAC35sCl0k/SoBxXbQG8zAzHLZam0WZxLqcIFWX/FhfaGS/XhjTDoIRwbwh7efji8bgPS8a/T8gqcCwOsuqjfA1LkaB4VzuMeEC4CEyQZi8iBaIhUhK5om8iAymZQsNB5BKQT05TjYydtbFigCNdiUFQg5MmNMHs3MjRw4egro9Y9eDmQdtF4WGnB3etGT+OXLJJLb/86D3U6Kdae4s7N9uqKBB/GbwmBDKE/tJDxrMU0lE5cVx8YAcDTOEbneZSHSOic8XHQkvB/lAsZpKV0DyKegZPZsIZCr3o+U0zNimp3yZhkA4Bz1Ds+MidJCQlFiT5p+Xx9DqefY7zQKxtIJEAE24DuUZoHehyZo9S73RT8OnuTFpGDaQPhFsd38r4TdkqtmKAQx2UW22kZDL9HHuAQnJNk0doADOoJ0SOKvzcuej0U27SZ"},{"salt":"y85tuXwduVSVrBKXubqcng==","iv":"qo73V41M70jZGqQH","ct":"E/kn11GD/Z4r9nH48nmJ90m0xpNp9WxNyE9zaC8OhjXzcCDKPhxaUcfPVoLnQyTTaJtEpcns8qN1CRltT/4A6ahRrP1rl4XW295QytByihCdJJV2iDy+4nTvBF6kOCgU640pyG5X43fIHiPKE4sUkn+IEfcX8L3xYQdTopZcJ2eZTLx15Wme0vJBFixRxYXNiSTsg9cnc3rJHSNjioIqFetqmAFZXfZqp630ZSzXoNwX7Xh56Oqsl4XY+gjMvUS1eC8XTM+OyYwp30gdBYp4c9fPwCuPS9G7HT3tQJSm+72BsEaqrs3r/wNZagCQcofxPDM7Q38d9WBxwXwl+a19eghuOimj528mLKrPLMOO7tgfz6Kwqjjq9Mn0s3pRzPvmA9IxhRvLwwPo8ul4tsUDBQl1uWODxwig3/AKK/3XNqzacQYJZoMVhhdgO0aGeUYGG9pu5pXTV8wwuYJ3qDHazZS6VQEJGW/iPqmzA3mDgbU5p7CLYM/mLU1p8mH4HaPM5VjJLXB5dtemOEd0iIUbT2QvD0F583La2ePZDESGLTtFZs1rh0kY4ZgotwA+dAZSoAB7pnPHhX91a5hPNAbha8E/w7Q8S+/QOrwhM3Gg7QJC2Lomze9kjtwu1h3zKaIvyjwSR8VL4feiUKN/AQhkWnrt0K9xlyYgYHxTT+CDJtGeTnyabGsIZn9LXK9mXP9ZPoq9TD8GYrywvdvLMu+m4FKRCTwv7SjThC/m3ZHgzTG1mlmnfVb3j6QXj1c40K4Nf5iRZyekCPvaOcqMadfDUuPqI3iYWfHCqxqdRtOt0VspMV4OGxammTzGrwP4z9wZbvM/Jx0AiOh0KQg9Dat1Hlo09LM6AZeJ5ieBn0ZdzvTzklZ+qVBlC6Y9d1f2zJ9jliufL9CZ+vXf1/r27siMXbn0eog="},{"salt":"rQii5WJc9iDhNB8up3VBkg==","iv":"myjAKJzOzXY7RWbK","ct":"hBR0wEIxv+c/RwPau8KfON8w2oQn3vL60YffAsUyyeBP6CnWtxzuRBKzS6WqQzFjbGNDtVNayolkAiGMXAXTqIyotbM7L516zVieumtnT10nQOSbNymD4dZV6OV8a93kru9rhqAvwg3lPDX3GSLqQxF0Myd1kwgSCJUYa7YE3uHuib12ICHNVxZgKwWTJr3wiLrs5YEZxF5d0Bu8L1DhOWUnoLBTnz3kueIrxafB10VNrzNvNVzJVdtuvBEx07IyZ3ePlBKrdXOQyICSYzJTelRvdvwlqcamdDra8CaCo//RQm/pzWUYeNrfOcUDJ/6K1QErcWkOvShHMnV3dERkg87gKx92KqSI6hQwQ3TUFtBZbWbs3TXe6vV2N56OhiGoopAleIjeYJeOR4OJL80tG5FrF5mCFAOcxpKesNN/jKoZ4oRkMpmGmr5lpUZEckAJ3yHEo+2KbRupFBDqsO2mze8zJxOVI+7hbpTGCyxy51KpICF83LRQTzqQAnO0t4amCvZXGBQNaJSFk2AfgitMGoCUqDQMXWZPVGvOSeObgbU06GX4Km6pLw52f08LiUMUy6xnxJ6chUltwzxCMSAPAgl/fDbRDGSEjXajnmc7+IAnq96o52VkH9rmhLvxI7lU6S2RvELJ3Fmiy35P/F6aOX5K9WsQvCF1moILLFbvRV0/Z7KuHve/5rggFf06h9H7qYh+doFi+lDgaX2GdvFgOCu8jfo0orf4xNiWSuvylSkl4UfOEZbGLo4tTndduDdTMX3BVnushHiqBDRPEGztvXCsH7Ql/xyiXPIYDY1Njz8Vk3B6bBdLS4xRdZ+6p4xOHOfuKB2px6RPUoA8lZMFlKFnwWE9ewdVHUMrJEB8w/cbj3U5qXnYcSkeunaKZ/F8SL5N1+qKj9wgp+mwD9F30pSK/FCg"}],"master":{"salt":"ozdBuxAuuXjrB2PiFYhsbg==","iv":"QnPpZIpOP4jPWaiX","ct":"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"}};
+
+/* ---------- kryptografie ---------- */
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function deriveKey(code, salt, iter){
+  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(code), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:iter, hash:'SHA-256'}, km,
+    {name:'AES-GCM', length:256}, false, ['decrypt']);
+}
+async function tryDecrypt(code, blob){
+  try{
+    const key = await deriveKey(code, b64(blob.salt), ENC.iterations);
+    const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64(blob.iv)}, key, b64(blob.ct));
+    return JSON.parse(new TextDecoder().decode(pt));
+  }catch(e){ return null; }
+}
+async function unlock(code){
+  const m = await tryDecrypt(code, ENC.master);
+  if(m) return {type:'master', data:m};
+  for(const s of ENC.slices){ const d = await tryDecrypt(code, s); if(d) return {type:'single', data:d}; }
+  return null;
+}
+
+/* ---------- pomocné + graf (shodné s hlavním reportem) ---------- */
+const czk  = v => (v==null ? "—" : v.toLocaleString('cs-CZ',{maximumFractionDigits:0})+" Kč");
+const czk2 = v => Math.round(v).toLocaleString('cs-CZ');
+function median(a){const s=[...a].sort((x,y)=>x-y);const n=s.length;return n?(n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2):0;}
+function fmtNum(n){return n.length===9?n.replace(/(\d{3})(\d{3})(\d{3})/,'$1 $2 $3'):n.replace(/(\d{2})(\d{3})(\d{3})/,'$1 $2 $3');}
+const REL=0.25, REL_BIG=0.50, ABS_MIN=60;
+function analyze(values){
+  const active=values.map((v,i)=>({v,i})).filter(o=>o.v!=null&&o.v>0);
+  const base=median(active.map(o=>o.v));
+  const flags=values.map(()=>null); let endedAt=null, was=false;
+  values.forEach((v,i)=>{
+    if(v!=null&&v>0){was=true;const dev=(v-base)/base;
+      if(Math.abs(v-base)>=ABS_MIN&&Math.abs(dev)>=REL) flags[i]={sev:Math.abs(dev)>=REL_BIG?'critical':'warning',dev,dir:v>base?'up':'down'};}
+    else if((v===0||v==null)&&was&&endedAt===null){endedAt=i;}
+  });
+  return {active:active.map(o=>o.v),base,flags,endedAt};
+}
+const C={surface:'var(--surface)',series:'var(--series)',fill:'var(--series-fill)',grid:'var(--grid)',
+  muted:'var(--muted)',text:'var(--ink)',critical:'var(--critical)',warning:'var(--warning)'};
+function lineChart({values,flags,months,W,H,yaxis,fill,zero,big,unit}){
+  const mL=yaxis?(big?66:56):8, mR=big?26:8, mT=big?30:12, mB=big?42:16;
+  const iw=W-mL-mR, ih=H-mT-mB;
+  const act=values.filter(v=>v!=null&&v>0); let maxv,minv;
+  if(zero){minv=0;maxv=Math.max(...act,1)*1.12;} else {maxv=Math.max(...act,1)*1.10;minv=Math.min(...act,maxv)*0.88;}
+  const rng=(maxv-minv)||1, n=values.length;
+  const x=i=>mL+(n<2?iw/2:i*iw/(n-1)), y=v=>mT+ih-(v-minv)/rng*ih;
+  let grid='';
+  if(yaxis){const T=4;for(let t=0;t<=T;t++){const val=minv+rng*t/T,yy=y(val);
+    grid+=`<line x1="${mL}" x2="${W-mR}" y1="${yy}" y2="${yy}" stroke="${C.grid}" stroke-width="1"/>`+
+          `<text x="${mL-8}" y="${yy+4}" text-anchor="end" fill="${C.muted}" font-size="${big?12:11}" font-family="system-ui,sans-serif">${czk2(val)}</text>`;}}
+  const segs=[];let prev=null;
+  values.forEach((v,i)=>{if(v!=null&&v>0){const p={x:x(i),y:y(v)};if(prev)segs.push([prev,p]);prev=p;}else prev=null;});
+  const path=segs.map(s=>`M${s[0].x},${s[0].y} L${s[1].x},${s[1].y}`).join(' ');
+  let area='';
+  if(fill){const pts=values.map((v,i)=>(v!=null&&v>0)?`${x(i)},${y(v)}`:null).filter(Boolean).join(' ');
+    if(pts) area=`<polygon points="${mL},${mT+ih} ${pts} ${x(n-1)},${mT+ih}" fill="${C.fill}"/>`;}
+  let dots='';
+  values.forEach((v,i)=>{if(v==null||v===0)return;const f=flags&&flags[i];
+    const col=f?(f.sev==='critical'?C.critical:C.warning):C.series, rr=big?(f?7:5):(f?5:3.4);
+    dots+=`<circle cx="${x(i)}" cy="${y(v)}" r="${rr}" fill="${col}" stroke="${C.surface}" stroke-width="${big?2.4:1.6}"/>`;
+    if(big) dots+=`<text x="${x(i)}" y="${y(v)-13}" text-anchor="middle" fill="${C.text}" font-size="12.5" font-weight="700" font-family="system-ui,sans-serif">${czk2(v)}</text>`;});
+  let xl='';months.forEach((m,i)=>{xl+=`<text x="${x(i)}" y="${H-(big?15:3)}" text-anchor="middle" fill="${C.muted}" font-size="${big?12:9}" font-family="system-ui,sans-serif">${m.label}${big?" ‘26":""}</text>`;});
+  const u=unit?`<text x="${mL}" y="${big?18:8}" fill="${C.muted}" font-size="${big?12.5:9.5}" font-family="system-ui,sans-serif">${unit}</text>`:'';
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${grid}${u}${area}<path d="${path}" fill="none" stroke="${C.series}" stroke-width="${big?3:2.2}" stroke-linecap="round" stroke-linejoin="round"/>${dots}${xl}</svg>`;
+}
+
+/* ---------- pohled JEDNOHO čísla ---------- */
+function renderSingle(d){
+  const r=d.row, months=d.months, a=analyze(r.values), ann=d.ann||{};
+  const avg=a.active.length?a.active.reduce((x,y)=>x+y,0)/a.active.length:0;
+  const mn=a.active.length?Math.min(...a.active):0, mx=a.active.length?Math.max(...a.active):0;
+  const nm=r.nazev||fmtNum(r.cislo);
+  const chart=lineChart({values:r.values,flags:a.flags,months,W:820,H:380,yaxis:true,fill:false,zero:false,big:true,unit:'Kč bez DPH'});
+  // řádek tabulky = měsíce
+  let rows=months.map((m,i)=>{const v=r.values[i];const f=a.flags[i];
+    let cls='',txt;
+    if(v==null)txt='—',cls='off'; else if(v===0)txt='ukončeno',cls='off';
+    else {txt=czk2(v)+(f?` <span class="badge">${f.dir==='up'?'▲':'▼'}</span>`:''); cls=f?(f.sev==='critical'?'cc':'cw'):'';}
+    return `<tr><td class="l">${m.label} ‘26</td><td class="${cls}">${txt}</td></tr>`;}).join('');
+  // příčina / upozornění
+  let causeHtml='';
+  const crit=a.flags.map((f,i)=>({f,i})).filter(o=>o.f).sort((p,q)=>(q.f.sev==='critical')-(p.f.sev==='critical')||q.i-p.i)[0];
+  if(a.endedAt!=null){causeHtml=`<div class="cause">Služba byla ukončena od ${months[a.endedAt].label} ‘26.</div>`;}
+  else if(crit){const f=crit.f,m=months[crit.i],an=ann[m.key];
+    causeHtml=`<div class="cause"><b>${f.dir==='up'?'⚠ Nárůst':'Pokles'}</b> v ${m.label} ‘26 na <b>${czk(r.values[crit.i])}</b> (${f.dev>0?'+':''}${(f.dev*100).toFixed(0)} % vs. obvyklých ${czk(a.base)}).${an?` 🔍 ${an}`:''}</div>`;}
+  document.getElementById('view').innerHTML=`
+    <div class="topbar"><div class="tag">Váš přehled · ${d.generated}</div><button class="lockbtn" onclick="location.reload()">🔒 Odhlásit</button></div>
+    <div class="chart-card">
+      <div class="head"><div><div class="name">${nm}</div><div class="tarif">${r.tarif||(r.kind==='internet'?'Pevný internet':'')}</div></div><div class="num">${fmtNum(r.cislo)}</div></div>
+      <div style="margin-top:8px">${chart}</div>
+      <div class="stats"><span>Ø <b>${czk(avg)}</b></span><span>min <b>${czk(mn)}</b></span><span>max <b>${czk(mx)}</b></span></div>
+      ${causeHtml}
+    </div>
+    <h2>Platby po měsících (Základ DPH)</h2>
+    <table><thead><tr><th class="l">Měsíc</th><th>Kč bez DPH</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td class="l">Průměr</td><td>${czk2(avg)}</td></tr></tfoot></table>`;
+}
+
+/* ---------- pohled OWNER (celý přehled) ---------- */
+function renderMaster(d){
+  const months=d.months, rows=d.rows, ann=d.annotations||{};
+  const per=months.map((m,i)=>rows.reduce((s,r)=>s+(r.values[i]||0),0));
+  const total=per.reduce((a,b)=>a+b,0);
+  const An=rows.map(r=>({r,a:analyze(r.values)}));
+  // overview
+  const ov=lineChart({values:per,flags:null,months,W:880,H:340,yaxis:true,fill:true,zero:true,big:true,unit:'Kč bez DPH'});
+  // alerts
+  const items=[];An.forEach(({r,a})=>a.flags.forEach((f,i)=>{if(f)items.push({r,a,i,f});}));
+  items.sort((x,y)=>((y.f.sev==='critical')-(x.f.sev==='critical'))||y.i-x.i);
+  const alertsHtml=items.length?items.map(it=>{const m=months[it.i],an=(ann[it.r.cislo]||{})[m.key];
+    return `<div class="arow ${it.f.sev==='critical'?'c':'w'}"><div class="ic">${it.f.dir==='up'?'↑':'↓'}</div>
+      <div><b>${it.r.nazev||fmtNum(it.r.cislo)}</b> <span class="tag">${fmtNum(it.r.cislo)}</span><br>
+      <span class="tag">${it.f.sev==='critical'?'Velký ':''}${it.f.dir==='up'?'nárůst':'pokles'} v ${m.label} ‘26 · ${it.f.dev>0?'+':''}${(it.f.dev*100).toFixed(0)} % vs. obvyklých ${czk(it.a.base)}.${an?` 🔍 ${an}`:''}</span></div>
+      <div class="amt">${czk(it.r.values[it.i])}</div></div>`;}).join(''):`<div class="tag">Žádné výrazné výkyvy.</div>`;
+  // table
+  const grp={mobil:'Mobilní čísla',internet:'Pevný internet'};let body='';
+  ['mobil','internet'].forEach(k=>{const rs=An.filter(o=>o.r.kind===k);if(!rs.length)return;
+    body+=`<tr class="grp"><td colspan="${months.length+2}">${grp[k]}</td></tr>`;
+    rs.forEach(({r,a})=>{const nm=r.nazev?`${r.nazev} <span class="tag">${fmtNum(r.cislo)}</span>`:fmtNum(r.cislo);
+      let cells=r.values.map((v,i)=>{if(v==null)return `<td class="off">—</td>`;if(v===0)return `<td class="off">ukončeno</td>`;
+        const f=a.flags[i];return `<td class="${f?(f.sev==='critical'?'cc':'cw'):''}">${czk2(v)}${f?` <span class="badge">${f.dir==='up'?'▲':'▼'}</span>`:''}</td>`;}).join('');
+      const avg=a.active.length?a.active.reduce((s,v)=>s+v,0)/a.active.length:0;
+      body+=`<tr><td class="l">${nm}</td>${cells}<td>${czk2(avg)}</td></tr>`;});});
+  const foot=`<tfoot><tr><td class="l">Celkem</td>${per.map(v=>`<td>${czk2(v)}</td>`).join('')}<td>${czk2(total/months.length)}</td></tr></tfoot>`;
+  const thead=`<thead><tr><th class="l">Číslo</th>${months.map(m=>`<th>${m.label} ‘26</th>`).join('')}<th>Průměr</th></tr></thead>`;
+  // cards
+  const cards=An.map(({r,a})=>{const sp=lineChart({values:r.values,flags:a.flags,months,W:300,H:76,yaxis:false,fill:false,zero:false,big:false});
+    const avg=a.active.length?a.active.reduce((s,v)=>s+v,0)/a.active.length:0;
+    return `<div class="ncard ${a.flags.some(Boolean)||a.endedAt!=null?'fl':''}"><div class="head"><div class="nm">${r.nazev||fmtNum(r.cislo)}</div><div class="nn">${fmtNum(r.cislo)}</div></div>
+      <div style="margin-top:6px">${sp}</div><div class="unit">Kč bez DPH</div><div class="stats"><span>Ø <b>${czk(avg)}</b></span></div></div>`;}).join('');
+  document.getElementById('view').innerHTML=`
+    <div class="topbar"><div><h1>Přehled tarifů — telefonní čísla</h1><div class="tag">Úplný přehled (owner) · ${d.generated}</div></div><button class="lockbtn" onclick="location.reload()">🔒 Odhlásit</button></div>
+    <div class="chart-card"><b>Vývoj celkové platby</b> — celkem ${czk(total)}, průměr ${czk(total/months.length)}/měsíc<div style="margin-top:8px">${ov}</div></div>
+    <h2>Upozornění na výkyvy</h2><div class="alerts">${alertsHtml}</div>
+    <h2>Přehledová tabulka (Základ DPH, Kč)</h2><table>${thead}<tbody>${body}</tbody>${foot}</table>
+    <h2>Jednotlivá čísla</h2><div class="grid">${cards}</div>`;
+}
+
+/* ---------- ovládání zámku ---------- */
+const form=document.getElementById('lock-form'), input=document.getElementById('code'),
+  btn=document.getElementById('unlock-btn'), err=document.getElementById('err');
+form.addEventListener('submit', async e=>{
+  e.preventDefault();
+  const code=input.value.trim();
+  if(!code){return;}
+  btn.disabled=true; btn.textContent='Ověřuji…'; err.textContent='';
+  let res=null;
+  try{ res=await unlock(code); }catch(ex){ err.textContent='Prohlížeč nepodporuje dešifrování (zkuste jiný / novější).'; btn.disabled=false; btn.textContent='Zobrazit'; return; }
+  if(!res){ err.textContent='Neplatný kód.'; btn.disabled=false; btn.textContent='Zobrazit'; input.select(); return; }
+  document.getElementById('lock').hidden=true;
+  document.getElementById('view').hidden=false;
+  const foot=document.getElementById('foot'); foot.hidden=false;
+  foot.textContent='Data jsou šifrovaná (AES‑GCM). Zobrazují se jen údaje odpovídající zadanému kódu.';
+  if(res.type==='master') renderMaster(res.data); else renderSingle(res.data);
+  window.scrollTo(0,0);
+});
+input.focus();
+</script>
+</body>
+</html>
